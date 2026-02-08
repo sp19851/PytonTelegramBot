@@ -1,12 +1,31 @@
-from config import API_TOKEN
-import telebot
+import asyncio
+import os
 
-bot = telebot.TeleBot(token=API_TOKEN)
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import CommandStart
+from aiogram.types import BotCommandScope
+from dotenv import find_dotenv,load_dotenv
 
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    welcome_text = f'{message.from_user.first_name}, welcome to the Bot!'
-    bot.send_message(message.chat.id, welcome_text)
+from common.bot_cmds_list import private
+from handlers.user_group import user_group_router
+from handlers.user_private import user_private_router
+
+load_dotenv(find_dotenv())
+
+ALLOWED_UPDATES=['message, edited_message'] #ограничения типов обрабатываемых событий
+
+bot = Bot(os.getenv('TOKEN'))
+dp=Dispatcher()
+dp.include_routers(user_private_router,user_group_router)
 
 
-bot.polling(none_stop=True)
+
+
+
+async def main():
+    await bot.delete_webhook(drop_pending_updates=True)
+    await bot.set_my_commands(commands=private,scope=types.BotCommandScopeAllPrivateChats())
+    await dp.start_polling(bot, allowed_updates=ALLOWED_UPDATES)
+
+
+asyncio.run(main())
